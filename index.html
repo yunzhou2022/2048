@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2048 Game</title>
+    <style>
+      .game-board {
+        width: 400px;
+        height: 400px;
+        margin: 0 auto;
+        background-color: #eee;
+        border: 1px solid #aaa;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+      }
+
+      .game-row {
+        display: flex;
+        justify-content: space-around;
+      }
+      .game-cell {
+        width: 80px;
+        height: 80px;
+        border: 1px solid #aaa;
+        background-color: #fff;
+        font-size: 60px;
+        text-align: center;
+      }
+
+      .game-cell:hover {
+        cursor: pointer;
+      }
+
+      .score {
+        text-align: center;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>2048 Game</h1>
+    <button onclick="reset()">reset</button>
+    <h2 class="score">score: 0</h2>
+    <div id="root" class="game-board"></div>
+
+    <script>
+      // 游戏棋盘的行数和列数
+      const ROWS = 4;
+      const COLS = 4;
+
+      let score = 0;
+
+      const boards = new Array(ROWS)
+        .fill(0)
+        .map((d) => new Array(COLS).fill(0));
+
+      function generateVal() {
+        return Math.random() > 0.5 ? 2 : 4;
+      }
+
+      function initBoards() {
+        for (let i = 0; i < ROWS; i++) {
+          for (let j = 0; j < COLS; j++) {
+            boards[i][j] = generateVal();
+          }
+        }
+      }
+
+      function renderScore() {
+        const _score = document.querySelector(".score");
+        _score.innerHTML = "score: " + score;
+      }
+
+      function renderBoard() {
+        const container = document.getElementById("root");
+        const child = boards.map((rowData) => {
+          const row = document.createElement("div");
+          row.className = "game-row";
+          const columns = rowData.map((d) => {
+            const column = document.createElement("div");
+            column.className = "game-cell";
+            column.innerText = d;
+            return column;
+          });
+
+          row.append(...columns);
+          return row;
+        });
+
+        container.replaceChildren(...child);
+      }
+
+      function render() {
+        renderBoard();
+        renderScore();
+      }
+
+      function reset() {
+        initBoards();
+        score = 0;
+        render();
+      }
+
+      function mergeDown() {
+        let num = 0;
+        for (let i = ROWS - 1; i > 0; i--) {
+          for (let j = COLS - 1; j >= 0; j--) {
+            if (boards[i][j] === boards[i - 1][j]) {
+              boards[i][j] += boards[i - 1][j];
+              boards[i - 1][j] = -1;
+              num++;
+            }
+          }
+        }
+        return num;
+      }
+
+      function mergeUp() {
+        let num = 0;
+        for (let i = 0; i < ROWS - 1; i++) {
+          for (let j = 0; j < COLS; j++) {
+            if (boards[i][j] === boards[i + 1][j]) {
+              boards[i][j] += boards[i + 1][j];
+              boards[i + 1][j] = -1;
+              num++;
+            }
+          }
+        }
+
+        return num;
+      }
+
+      function mergeRight() {
+        let num = 0;
+        for (let i = ROWS - 1; i >= 0; i--) {
+          for (let j = COLS - 1; j > 0; j--) {
+            if (boards[i][j] === boards[i][j - 1]) {
+              boards[i][j] += boards[i][j - 1];
+              boards[i][j - 1] = -1;
+              num++;
+            }
+          }
+        }
+
+        return num;
+      }
+
+      function mergeLeft() {
+        let num = 0;
+        for (let i = 0; i < ROWS; i++) {
+          for (let j = 0; j < COLS - 1; j++) {
+            if (boards[i][j] === boards[i][j + 1]) {
+              boards[i][j] += boards[i][j + 1];
+              boards[i][j + 1] = -1;
+              num++;
+            }
+          }
+        }
+        return num;
+      }
+
+      function patchingBoard() {
+        for (let i = 0; i < ROWS; i++) {
+          for (let j = 0; j < COLS; j++) {
+            if (boards[i][j] === -1) {
+              boards[i][j] = generateVal();
+            }
+          }
+        }
+      }
+
+      function merge(dir) {
+        let num = 0;
+        switch (dir) {
+          case "up":
+            num = mergeUp();
+            break;
+          case "down":
+            num = mergeDown();
+            break;
+          case "left":
+            num = mergeLeft();
+            break;
+          case "right":
+            num = mergeRight();
+            break;
+          default:
+            break;
+        }
+
+        patchingBoard();
+
+        return num;
+      }
+
+      function deadCheck() {
+        for (let i = 0; i < ROWS; i++) {
+          for (let j = 0; j < COLS; j++) {
+            if (boards[i][j] === boards[i + 1]?.[j]) {
+              return false;
+            }
+            if (boards[i][j] === boards[i][j + 1]) {
+              return false;
+            }
+            if (boards[i][j] === boards[i - 1]?.[j]) {
+              return false;
+            }
+            if (boards[i][j] === boards[i][j - 1]) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+
+      reset();
+
+      document.addEventListener("keydown", (e) => {
+        if (deadCheck()) {
+          return;
+        }
+
+        let num;
+
+        switch (e.key) {
+          case "ArrowUp":
+            num = merge("up");
+            break;
+          case "ArrowDown":
+            num = merge("down");
+            break;
+          case "ArrowLeft":
+            num = merge("left");
+            break;
+          case "ArrowRight":
+            num = merge("right");
+            break;
+          default:
+            break;
+        }
+
+        if (num) {
+          score++;
+        }
+
+        render();
+      });
+    </script>
+  </body>
+</html>
